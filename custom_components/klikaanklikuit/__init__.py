@@ -21,11 +21,16 @@ from .const import (
     MANUFACTURER,
     MODEL_HUB,
 )
-from .coordinator import Ics2000Coordinator
+from .coordinator import Ics2000Coordinator, fetch_device_types
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.LIGHT,
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -72,6 +77,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = Ics2000Coordinator(hass, entry, hub, scan_interval)
     await coordinator.async_config_entry_first_refresh()
 
+    # Recover each device's real device_type so platforms can classify
+    # switches/dimmers/gongs/doorbells that the library couldn't.
+    device_types = await hass.async_add_executor_job(fetch_device_types, hub)
+
     # Register the hub itself as a device so every KAKU device can hang under
     # it (via_device) in the device tree, instead of floating loose.
     hub_identifier = (DOMAIN, entry.entry_id)
@@ -91,6 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "tries": entry.options.get(CONF_TRIES, 1),
         "sleep": entry.options.get(CONF_SLEEP, 3),
         "hub_identifier": hub_identifier,
+        "device_types": device_types,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

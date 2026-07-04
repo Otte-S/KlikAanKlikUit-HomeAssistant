@@ -15,6 +15,7 @@ import logging
 from datetime import timedelta
 
 from ics2000_python.Core import CoreException, Hub
+from ics2000_python.Cryptographer import decrypt
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -23,6 +24,42 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def fetch_device_types(hub: Hub) -> dict[int, int]:
+    """Return {device_id: device_type} by re-reading the sync endpoint.
+
+    The library discards device_type for devices it can't classify, so we
+    re-fetch it ourselves. Blocking (HTTP + decrypt) - call via the executor.
+    Accesses a few library internals that have no public accessor; degrades to
+    an empty dict on any error so classification just falls back to defaults.
+    """
+    import json
+
+    import requests
+
+    result: dict[int, int] = {}
+    try:
+        url = f"{Hub.base_url}/gateway.php"
+        params = {
+            "action": "sync",
+            "email": hub._email,  # noqa: SLF001
+            "mac": hub.mac.replace(":", ""),
+            "password_hash": hub._password,  # noqa: SLF001
+            "home_id": hub._homeId,  # noqa: SLF001
+        }
+        resp = requests.get(url, params=params, timeout=15)
+        for device in resp.json():
+            try:
+                data = json.loads(decrypt(device["data"], hub.aes))
+                module = data.get("module", {})
+                if "id" in module and "device" in module:
+                    result[module["id"]] = module["device"]
+            except Exception:  # noqa: BLE001
+                continue
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Could not fetch device types, using fallbacks: %s", err)
+    return result
 
 
 class Ics2000Coordinator(DataUpdateCoordinator[dict[int, list]]):

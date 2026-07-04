@@ -8,7 +8,7 @@
     "ics2000_python@git+https://github.com/rdegraafwhizzkit/ics2000-python.git@v1.0.4"
   ],
   "iot_class": "cloud_polling",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "integration_type": "hub",
   "config_flow": true,
   "homeassistant": "2024.1.0",

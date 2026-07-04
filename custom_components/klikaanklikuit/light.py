@@ -6,8 +6,6 @@ import math
 import time
 from typing import Any
 
-from ics2000_python.Devices import Device, Dimmer, Light, TemperatureHumiditySensor
-
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -17,6 +15,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER
 from .coordinator import Ics2000Coordinator
+from .device_classifier import CATEGORY_DIMMER, CATEGORY_LIGHT, classify
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,20 +46,21 @@ async def async_setup_entry(
     sleep: int = data["sleep"]
 
     hub_identifier = data["hub_identifier"]
+    device_types: dict[int, int] = data["device_types"]
     entities = []
     for device in coordinator.hub.devices:
-        # Lights and dimmers map cleanly. Any device the library couldn't
-        # classify (exact type Device - e.g. a switch/gong/doorbell receiver
-        # with an unrecognised device_type) is still an on/off actuator on the
-        # KAKU hub, so expose it as a switchable light too. Commands go through
-        # hub.turn_on/turn_off(device_id), which works regardless of the
-        # device's Python class. Temperature/humidity sensors are a Device
-        # subclass but are read-only, so they're excluded here and handled in
-        # sensor.py.
-        if isinstance(device, TemperatureHumiditySensor):
-            continue
-        if isinstance(device, (Light, Dimmer)) or type(device) is Device:  # noqa: E721
-            entities.append(Ics2000Light(coordinator, device, tries, sleep, hub_identifier))
+        category = classify(device, device_types.get(device.id))
+        # Only lights and dimmers are handled here. Gongs, doorbells,
+        # wall-switch inputs and temp/humidity sensors go to their own
+        # platforms (button, binary_sensor, sensor).
+        if category == CATEGORY_DIMMER:
+            entities.append(
+                Ics2000Light(coordinator, device, tries, sleep, hub_identifier, is_dimmer=True)
+            )
+        elif category == CATEGORY_LIGHT:
+            entities.append(
+                Ics2000Light(coordinator, device, tries, sleep, hub_identifier, is_dimmer=False)
+            )
     async_add_entities(entities)
 
 
@@ -85,6 +85,7 @@ class Ics2000Light(CoordinatorEntity[Ics2000Coordinator], LightEntity):
         tries: int,
         sleep: int,
         hub_identifier: tuple[str, str],
+        is_dimmer: bool,
     ) -> None:
         super().__init__(coordinator)
         self._device = device
@@ -92,8 +93,8 @@ class Ics2000Light(CoordinatorEntity[Ics2000Coordinator], LightEntity):
         self._id = device.id
         self.tries = tries
         self.sleep = sleep
+        self._is_dimmer = is_dimmer
         self._attr_unique_id = f"klikaanklikuit-{device.id}"
-        is_dimmer = isinstance(device, Dimmer)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(device.id))},
             name=device.name,
@@ -142,7 +143,7 @@ class Ics2000Light(CoordinatorEntity[Ics2000Coordinator], LightEntity):
 
     @property
     def brightness(self) -> int | None:
-        if not isinstance(self._device, Dimmer):
+        if not self._is_dimmer:
             return None
         if self._optimistic_active:
             return self._optimistic_brightness
