@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "KlikAanKlikUit hub verbinden",
+        "data": {
+          "mac": "MAC-adres van de ICS2000",
+          "email": "E-mailadres (KlikAanKlikUit/Trust account)",
+          "password": "Wachtwoord"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kon geen verbinding maken met de ICS2000 hub. Controleer MAC-adres, e-mail en wachtwoord.",
+      "unknown": "Onverwachte fout, zie het Home Assistant log voor details."
+    },
+    "abort": {
+      "already_configured": "Deze hub is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "tries": "Aantal pogingen per commando",
+          "sleep": "Pauze tussen pogingen (seconden)",
+          "scan_interval": "Poll-interval voor status (seconden)"
+        }
+      }
+    }
+  }
+}
