@@ -1,121 +1,97 @@
-"""The KlikAanKlikUit (ICS-2000) integration."""
 from __future__ import annotations
 
 import logging
 
-from ics2000_python.Core import CoreException, Hub
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_MAC, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import (
-    CONF_LOCAL_IP,
-    CONF_SCAN_INTERVAL,
-    CONF_SLEEP,
-    CONF_TRIES,
-    DEFAULT_SCAN_INTERVAL,
-    DOMAIN,
-    MANUFACTURER,
-    MODEL_HUB,
-)
-from .coordinator import Ics2000Coordinator, fetch_device_types
+from .api import IcsAuthError, IcsClient, IcsError, normalize_mac
+from .const import CONF_LOCAL_IP, DOMAIN, MANUFACTURER, MODEL_HUB
+from .coordinator import Ics2000Coordinator
+from .device_classifier import classify
 
 _LOGGER = logging.getLogger(__name__)
-
-PLATFORMS: list[Platform] = [
-    Platform.LIGHT,
-    Platform.SENSOR,
-    Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-]
+PLATFORMS = [Platform.LIGHT, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON]
+type IcsConfigEntry = ConfigEntry[Ics2000Coordinator]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up ICS2000 from a config entry."""
+async def async_setup_entry(hass: HomeAssistant, entry: IcsConfigEntry) -> bool:
 
-    def _create_hub() -> Hub:
-        # Hub.__init__ logs in, pulls the device list AND does a 10s-max UDP
-        # broadcast to find the hub's local IP. All blocking - must run here,
-        # in the executor, never on the event loop.
-        return Hub(
-            entry.data[CONF_MAC],
-            entry.data[CONF_EMAIL],
-            entry.data[CONF_PASSWORD],
-        )
-
+    local_ip = entry.options.get(CONF_LOCAL_IP, entry.data.get(CONF_LOCAL_IP, ""))
+    client = IcsClient(
+        async_get_clientsession(hass),
+        entry.data[CONF_MAC],
+        entry.data[CONF_EMAIL],
+        entry.data[CONF_PASSWORD],
+        local_ip,
+    )
     try:
-        hub = await hass.async_add_executor_job(_create_hub)
-    except CoreException as err:
-        raise ConfigEntryNotReady(f"Could not connect to ICS2000 hub: {err}") from err
+        await client.async_login()
+        await client.async_get_devices()
+        await client.async_discover()
+    except IcsAuthError as err:
+        raise ConfigEntryAuthFailed("Check the hub account credentials") from err
+    except IcsError as err:
+        raise ConfigEntryNotReady(str(err)) from err
 
-    if not hub.connected:
-        raise ConfigEntryNotReady("ICS2000 hub reported not connected")
-
-    # If the user pinned a local IP, use it - the auto broadcast in Hub.__init__
-    # can fail across VLANs/subnets. With an IP set, the library sends commands
-    # over local UDP instead of the cloud.
-    local_ip = entry.options.get(CONF_LOCAL_IP) or entry.data.get(CONF_LOCAL_IP)
-    if local_ip:
-        hub.ip_address = local_ip
-
-    if hub.ip_address:
-        _LOGGER.info(
-            "KlikAanKlikUit hub found locally at %s - commands go over local UDP",
-            hub.ip_address,
-        )
-    else:
-        _LOGGER.warning(
-            "KlikAanKlikUit hub not found on the local network - commands will "
-            "fall back to the cloud. Set a local IP in the integration options "
-            "to force local control."
-        )
-
-    scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-    coordinator = Ics2000Coordinator(hass, entry, hub, scan_interval)
+    coordinator = Ics2000Coordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
-
-    # Recover each device's real device_type so platforms can classify
-    # switches/dimmers/gongs/doorbells that the library couldn't.
-    device_types = await hass.async_add_executor_job(fetch_device_types, hub)
-
-    # Register the hub itself as a device so every KAKU device can hang under
-    # it (via_device) in the device tree, instead of floating loose.
-    hub_identifier = (DOMAIN, entry.entry_id)
-    device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
+    entry.runtime_data = coordinator
+    dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
-        identifiers={hub_identifier},
+        identifiers={coordinator.hub_identifier},
         manufacturer=MANUFACTURER,
         model=MODEL_HUB,
-        name=f"KlikAanKlikUit hub ({entry.data[CONF_MAC]})",
+        name="KlikAanKlikUit hub",
     )
-
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        "hub": hub,
-        "coordinator": coordinator,
-        "tries": entry.options.get(CONF_TRIES, 1),
-        "sleep": entry.options.get(CONF_SLEEP, 3),
-        "hub_identifier": hub_identifier,
-        "device_types": device_types,
-    }
-
+    for device in client.devices:
+        if classify(device) is None:
+            _LOGGER.warning(
+                "Unsupported ICS-2000 device type %s (device %s); see diagnostics",
+                device.device_type,
+                device.id,
+            )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_update_options))
     return True
 
 
-async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload the entry when options (tries/sleep/scan interval) change."""
+async def async_update_options(hass: HomeAssistant, entry: IcsConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-    return unload_ok
+async def async_unload_entry(hass: HomeAssistant, entry: IcsConfigEntry) -> bool:
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if entry.version > 2:
+        return False
+    if entry.version == 1:
+        mac = normalize_mac(entry.data[CONF_MAC])
+        registry = er.async_get(hass)
+        for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
+            prefix = "klikaanklikuit-"
+            if entity.unique_id.startswith(prefix):
+                rest = entity.unique_id[len(prefix) :]
+                if rest.split("-", 1)[0].isdigit():
+                    registry.async_update_entity(
+                        entity.entity_id, new_unique_id=f"{prefix}{mac}-{rest}"
+                    )
+        device_registry = dr.async_get(hass)
+        for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+            identifiers = {
+                (domain, f"{mac}-{identifier}")
+                if domain == DOMAIN and identifier.isdigit()
+                else (domain, identifier)
+                for domain, identifier in device.identifiers
+            }
+            if identifiers != device.identifiers:
+                device_registry.async_update_device(device.id, new_identifiers=identifiers)
+        hass.config_entries.async_update_entry(entry, version=2, unique_id=mac)
+    return True

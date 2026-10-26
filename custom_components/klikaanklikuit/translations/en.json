@@ -4,30 +4,52 @@
       "user": {
         "title": "Connect KlikAanKlikUit hub",
         "data": {
-          "mac": "MAC address of the ICS2000",
-          "email": "Email address (KlikAanKlikUit/Trust account)",
-          "password": "Password",
-          "local_ip": "Hub local IP (optional, forces local UDP control)"
+          "mac": "Hub MAC address",
+          "email": "Account email",
+          "password": "Account password",
+          "local_ip": "Hub IPv4 address (optional)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update KlikAanKlikUit credentials",
+        "data": {
+          "email": "Account email",
+          "password": "Account password"
         }
       }
     },
     "error": {
-      "cannot_connect": "Could not connect to the ICS2000 hub. Check MAC address, email and password.",
-      "unknown": "Unexpected error, check the Home Assistant log for details."
+      "cannot_connect": "Could not connect to the cloud. Check your connection and try again.",
+      "invalid_auth": "The account credentials or hub MAC address were rejected.",
+      "invalid_input": "Enter a valid MAC address and optional IPv4 address."
     },
     "abort": {
-      "already_configured": "This hub is already configured."
+      "already_configured": "This hub is already configured.",
+      "reauth_successful": "Credentials updated."
     }
   },
   "options": {
     "step": {
       "init": {
         "data": {
-          "tries": "Number of tries per command",
-          "sleep": "Pause between tries (seconds)",
-          "scan_interval": "Cloud status poll interval in seconds (min 5; lower = faster sensors/automations, more cloud traffic)",
-          "local_ip": "Hub local IP (optional, forces local UDP control)"
+          "tries": "Transmissions per command",
+          "sleep": "Seconds between transmissions",
+          "scan_interval": "Cloud status interval (seconds, at least 5)",
+          "local_ip": "Hub IPv4 address (empty for automatic discovery)"
         }
+      }
+    },
+    "error": {
+      "invalid_input": "Enter a valid IPv4 address, or leave it empty."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
       }
     }
   }

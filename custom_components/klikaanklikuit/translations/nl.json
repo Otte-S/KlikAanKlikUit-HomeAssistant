@@ -2,32 +2,54 @@
   "config": {
     "step": {
       "user": {
-        "title": "KlikAanKlikUit hub verbinden",
+        "title": "KlikAanKlikUit-hub verbinden",
         "data": {
-          "mac": "MAC-adres van de ICS2000",
-          "email": "E-mailadres (KlikAanKlikUit/Trust account)",
-          "password": "Wachtwoord",
-          "local_ip": "Lokaal IP van de hub (optioneel, forceert lokale UDP-besturing)"
+          "mac": "MAC-adres van de hub",
+          "email": "E-mailadres van je account",
+          "password": "Wachtwoord van je account",
+          "local_ip": "IPv4-adres van de hub (optioneel)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "KlikAanKlikUit-inloggegevens bijwerken",
+        "data": {
+          "email": "E-mailadres van je account",
+          "password": "Wachtwoord van je account"
         }
       }
     },
     "error": {
-      "cannot_connect": "Kon geen verbinding maken met de ICS2000 hub. Controleer MAC-adres, e-mail en wachtwoord.",
-      "unknown": "Onverwachte fout, zie het Home Assistant log voor details."
+      "cannot_connect": "Geen verbinding met de cloud. Controleer je verbinding en probeer opnieuw.",
+      "invalid_auth": "De inloggegevens of het MAC-adres van de hub zijn geweigerd.",
+      "invalid_input": "Vul een geldig MAC-adres en eventueel een IPv4-adres in."
     },
     "abort": {
-      "already_configured": "Deze hub is al geconfigureerd."
+      "already_configured": "Deze hub is al geconfigureerd.",
+      "reauth_successful": "Inloggegevens bijgewerkt."
     }
   },
   "options": {
     "step": {
       "init": {
         "data": {
-          "tries": "Aantal pogingen per commando",
-          "sleep": "Pauze tussen pogingen (seconden)",
-          "scan_interval": "Cloud poll-interval status in seconden (min 5; lager = snellere sensoren/automatiseringen, meer cloudverkeer)",
-          "local_ip": "Lokaal IP van de hub (optioneel, forceert lokale UDP-besturing)"
+          "tries": "Verzendingen per commando",
+          "sleep": "Seconden tussen verzendingen",
+          "scan_interval": "Cloudstatus ophalen om de hoeveel seconden (minimaal 5)",
+          "local_ip": "IPv4-adres van de hub (leeg voor automatisch zoeken)"
         }
+      }
+    },
+    "error": {
+      "invalid_input": "Vul een geldig IPv4-adres in of laat het veld leeg."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperatuur"
+      },
+      "humidity": {
+        "name": "Luchtvochtigheid"
       }
     }
   }
