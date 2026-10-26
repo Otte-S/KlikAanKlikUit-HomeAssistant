@@ -1,11 +1,9 @@
-# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
 venv/
 
-# Home Assistant / editor
 .DS_Store
 *.log
 .idea/

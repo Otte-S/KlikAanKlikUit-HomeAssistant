@@ -2,32 +2,54 @@
   "config": {
     "step": {
       "user": {
-        "title": "KlikAanKlikUit hub verbinden",
+        "title": "Connect KlikAanKlikUit hub",
         "data": {
-          "mac": "MAC-adres van de ICS2000",
-          "email": "E-mailadres (KlikAanKlikUit/Trust account)",
-          "password": "Wachtwoord",
-          "local_ip": "Lokaal IP van de hub (optioneel, forceert lokale UDP-besturing)"
+          "mac": "Hub MAC address",
+          "email": "Account email",
+          "password": "Account password",
+          "local_ip": "Hub IPv4 address (optional)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update KlikAanKlikUit credentials",
+        "data": {
+          "email": "Account email",
+          "password": "Account password"
         }
       }
     },
     "error": {
-      "cannot_connect": "Kon geen verbinding maken met de ICS2000 hub. Controleer MAC-adres, e-mail en wachtwoord.",
-      "unknown": "Onverwachte fout, zie het Home Assistant log voor details."
+      "cannot_connect": "Could not connect to the cloud. Check your connection and try again.",
+      "invalid_auth": "The account credentials or hub MAC address were rejected.",
+      "invalid_input": "Enter a valid MAC address and optional IPv4 address."
     },
     "abort": {
-      "already_configured": "Deze hub is al geconfigureerd."
+      "already_configured": "This hub is already configured.",
+      "reauth_successful": "Credentials updated."
     }
   },
   "options": {
     "step": {
       "init": {
         "data": {
-          "tries": "Aantal pogingen per commando",
-          "sleep": "Pauze tussen pogingen (seconden)",
-          "scan_interval": "Cloud poll-interval status in seconden (min 5; lager = snellere sensoren/automatiseringen, meer cloudverkeer)",
-          "local_ip": "Lokaal IP van de hub (optioneel, forceert lokale UDP-besturing)"
+          "tries": "Transmissions per command",
+          "sleep": "Seconds between transmissions",
+          "scan_interval": "Cloud status interval (seconds, at least 5)",
+          "local_ip": "Hub IPv4 address (empty for automatic discovery)"
         }
+      }
+    },
+    "error": {
+      "invalid_input": "Enter a valid IPv4 address, or leave it empty."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
       }
     }
   }
