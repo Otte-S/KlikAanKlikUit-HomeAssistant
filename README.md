@@ -2,7 +2,7 @@
 
 Control KlikAanKlikUit / Trust devices through an ICS-2000 hub. Setup and options are available in the Home Assistant interface.
 
-Requires Home Assistant 2026.10 or newer, an ICS-2000 hub and a KlikAanKlikUit / Trust account. Authentication, device discovery and status updates require access to the Trust cloud. Commands can use the local network after authentication.
+Requires Home Assistant 2026.9.3 or newer, an ICS-2000 hub and a KlikAanKlikUit / Trust account. Authentication, device discovery and status updates require access to the Trust cloud. Commands can use the local network after authentication.
 
 ## Installation
 

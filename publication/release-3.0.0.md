@@ -8,4 +8,4 @@ The migration preserves existing supported entity IDs and custom names while mak
 
 Doorbell and wall-transmitter cloud states are experimental and disabled by default for new installations. They do not guarantee that every press is observed.
 
-Requires Home Assistant 2026.10 or newer. See CHANGELOG.md for all changes.
+Requires Home Assistant 2026.9.3 or newer. See CHANGELOG.md for all changes.

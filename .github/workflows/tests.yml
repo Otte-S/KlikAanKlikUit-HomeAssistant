@@ -10,14 +10,24 @@ permissions:
 
 jobs:
   tests:
+    name: Home Assistant ${{ matrix.homeassistant }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - homeassistant: "2026.9.3"
+            harness: "0.13.366"
+          - homeassistant: "2026.10.1"
+            harness: "0.13.372"
+          - homeassistant: "2026.10.4"
+            harness: "0.13.375"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
           cache: pip
-      - run: pip install -r requirements-test.txt
+      - run: pip install pytest-homeassistant-custom-component==${{ matrix.harness }} ruff==0.17.2
       - run: ruff check custom_components tests
       - run: ruff format --check custom_components tests
       - run: pytest

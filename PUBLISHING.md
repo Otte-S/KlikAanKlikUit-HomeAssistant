@@ -33,4 +33,4 @@ The retired URL is `Otte-S/KlikAanKlikUit-HA`. Replace that repository in HACS w
 
 ## Verification record
 
-The local regression suite runs against Home Assistant 2026.10.4 and Python 3.14. Physical ICS-2000 command delivery and ECO-DIM.07 behavior require the hardware checks above. The experimental momentary input sensors do not provide guaranteed press events.
+The regression suite targets Home Assistant 2026.9.3, 2026.10.1 and 2026.10.4 with Python 3.14. Physical ICS-2000 command delivery and ECO-DIM.07 behavior require the hardware checks above. The experimental momentary input sensors do not provide guaranteed press events.
