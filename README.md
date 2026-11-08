@@ -6,11 +6,14 @@ Requires Home Assistant 2026.9.3 or newer, an ICS-2000 hub and a KlikAanKlikUit 
 
 ## Installation
 
-1. In HACS, open **Custom repositories**.
-2. Add `https://github.com/Otte-S/KlikAanKlikUit-HomeAssistant` as an **Integration**.
-3. Download **KlikAanKlikUit** and restart Home Assistant.
-4. Go to **Settings > Devices & services > Add integration > KlikAanKlikUit**.
-5. Enter the hub MAC address and the credentials used in the KlikAanKlikUit / Trust app. You can also enter the hub IPv4 address.
+1. In HACS, search for **KlikAanKlikUit** and download it.
+2. Restart Home Assistant.
+3. Go to **Settings > Devices & services > Add integration > KlikAanKlikUit**.
+4. Enter the hub MAC address and the credentials used in the KlikAanKlikUit / Trust app. You can also enter the hub IPv4 address.
+
+If it is not available in the HACS catalog, open **Custom repositories**, add
+`https://github.com/Otte-S/KlikAanKlikUit-HomeAssistant` as an **Integration**,
+and then download **KlikAanKlikUit**.
 
 The hub and its supported devices appear automatically. Devices added or removed in the Trust app are synchronized when you reload the integration.
 
