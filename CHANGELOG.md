@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.1
+
+- Update the installation instructions for the HACS catalog.
+
 ## 3.0.0
 
 - Replace the Git-installed client with an asynchronous client using Home Assistant's HTTP session.
